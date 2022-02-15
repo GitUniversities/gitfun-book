@@ -1,0 +1,48 @@
+name: Get IMG
+
+on:
+  #push:
+  #  branches: [ main ]
+  schedule:
+    - cron: 18 01,22 3-9,15-29 * *
+  watch:
+    type: started
+
+
+jobs:
+  build:
+    name: Build on ubuntu
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Configuration environment
+        env:
+          IMG_DEPLOY_PRI: ${{secrets.IMG_DEPLOY_PRI}}
+          IMG_DEPLOY_U: ${{secrets.IMG_DEPLOY_U}}
+          IMG_DEPLOY_A: ${{secrets.IMG_DEPLOY_A}}
+        run: |
+          sudo apt install wget -y
+          ls -al
+          mkdir -p ./static/media/imgs/`date +%Y`/`date +%m`
+          wget -c 'https://api.ixiaowai.cn/api/api.php?19' -O ./static/media/imgs/`date +%Y`/`date +%m`/`date +%Y%m%d%M%N`.jpg --content-on-error --no-check-certificate
+
+          ls -al
+          sudo timedatectl set-timezone "Asia/Shanghai"
+          mkdir -p ~/.ssh/
+          echo "$IMG_DEPLOY_PRI" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git config --global user.name "$IMG_DEPLOY_U"
+          git config --global user.email "$IMG_DEPLOY_A"
+          git add .; git commit -m `date +%Y-%m-%d-%T`
+          git branch -M main
+          #git fetch --all
+          #git pull origin main
+          git push origin main
